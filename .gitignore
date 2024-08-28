@@ -1,0 +1,6 @@
+include/
+lib/
+Scripts/
+.env
+db.sqlite
+pyvenv.cfg
