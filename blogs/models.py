@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from ckeditor_uploader.fields import RichTextUploadingField
 
 # Create your models here.
 
@@ -9,10 +10,25 @@ class Blog(models.Model):
         ('draft', 'Draft'),
         ('published', 'Published')
     ]
+    TOPIC_CHOICES = [
+        ('python', 'Python'),
+        ('css', 'CSS'),
+        ('html', 'HTML'),
+        ('scss', 'SCSS'),
+        ('django', 'Django'),
+        ('javascript', 'Javascript'),
+        ('angular', 'Angular'),
+        ('docker', 'Docker'),
+        ('kubernetes', 'Kubernetes'),
+        ('git', 'Git'),
+        ('bootstrap', 'Bootstrap'),
+        ('tailwind', 'Tailwind'),
+    ]
     author = models.ForeignKey(get_user_model(), on_delete=models.PROTECT)
     title = models.CharField(max_length=200)
     status= models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
-    content = models.TextField()
+    topic = models.CharField(max_length=100, choices=TOPIC_CHOICES)
+    content = RichTextUploadingField()
     updated_on = models.DateField(auto_now=True)
     created_on = models.DateField(auto_now_add=True)
 
