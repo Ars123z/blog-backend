@@ -45,10 +45,11 @@ class LoginSerializer(serializers.ModelSerializer):
     full_name=serializers.CharField(max_length=255, read_only=True)
     access_token=serializers.CharField(max_length=255, read_only=True)
     refresh_token=serializers.CharField(max_length=255, read_only=True)
+    auth_provider=serializers.CharField(max_length=255, read_only=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'full_name', 'access_token', 'refresh_token']
+        fields = ['email', 'password', 'full_name', 'access_token', 'refresh_token', 'auth_provider']
 
     
 
@@ -66,7 +67,8 @@ class LoginSerializer(serializers.ModelSerializer):
             'email':user.email,
             'full_name':user.get_full_name,
             "access_token":str(tokens.get('access')),
-            "refresh_token":str(tokens.get('refresh'))
+            "refresh_token":str(tokens.get('refresh')),
+            "auth_provider": str(user.auth_provider)
         }
 
 
@@ -85,10 +87,11 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             token = PasswordResetTokenGenerator().make_token(user)
             request=self.context.get('request')
             current_site=get_current_site(request).domain
-            relative_link =reverse('reset-password-confirm', kwargs={'uidb64':uidb64, 'token':token})
+            relative_link =reverse('reset_password_confirm', kwargs={'uidb64':uidb64, 'token':token})
             abslink=f"http://{current_site}{relative_link}"
             print(abslink)
-            email_body=f"Hi {user.first_name} use the link below to reset your password {abslink}"
+            abslink2 = f"http://localhost:4200/password-reset-confirm/{uidb64}/{token}/"
+            email_body=f"Hi {user.first_name} use the link below to reset your password {abslink2}"
             data={
                 'email_body':email_body, 
                 'email_subject':"Reset your Password", 
@@ -147,3 +150,32 @@ class LogoutUserSerializer(serializers.Serializer):
             token.blacklist()
         except TokenError:
             return self.fail('bad_token')
+        
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password=serializers.CharField(max_length=100, min_length=6, write_only=True)
+    new_password=serializers.CharField(max_length=100, min_length=6, write_only=True)
+
+    class Meta:
+        fields = ['old_password', 'new_password']
+
+    def validate(self, attrs):
+        old_password= attrs.get('old_password')
+        new_password= attrs.get('new_password')
+        request = self.context.get('request')
+        user = request.user
+        if not user.check_password(old_password):
+            raise serializers.ValidationError("Old password value doesn't match the saved password of the user.")
+        return attrs
+    
+    def save(self, **kwargs):
+        request = self.context.get('request')
+        user = request.user
+        new_password = self.validated_data['new_password']
+        user.set_password(new_password)
+        user.save()
+        return user
+
+
+
+
+
